@@ -87,7 +87,7 @@ ESP32 PCNT 硬件计数器累计脉冲
 
 ---
 
-### 2️⃣ 脉冲体积设置（重要）
+### 2️⃣ 脉冲体积/精度设置（重要）
 
 **实体名称**：`number.pulse_volume`
 
@@ -156,7 +156,7 @@ update_interval: 60s
 1. 烧录固件并上线 ESP
 2. 在 Home Assistant 中发现设备
 3. 设置：
-   - `Pulse Volume`（每脉冲体积）
+   - `Pulse Volume`（脉冲精度）
    - `Gas Usage Correction`（对齐实体表）
 4. 连续运行 24–72 小时进行对比验证
 
