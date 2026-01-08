@@ -122,6 +122,7 @@
    - `Pulse Volume`（按燃气表规格）
    - `Gas Usage Correction`（对齐表盘读数）
 5. 观察 `Gas Pulse State` 验证脉冲是否正常
+6. 连续运行 24–72 小时进行对比验证
 
 ---
 
@@ -133,17 +134,6 @@
   - 不会重复累计
 
 > 软件层通过 `delta` 计算防止重复累计，即使 PCNT 在短时间内多计数也不会影响总量。
-
----
-
-## ✅ 部署步骤建议
-
-1. 烧录固件并上线 ESP
-2. 在 Home Assistant 中发现设备
-3. 设置：
-   - `Pulse Volume`（脉冲精度）
-   - `Gas Usage Correction`（对齐实体表）
-4. 连续运行 24–72 小时进行对比验证
 
 ---
 
