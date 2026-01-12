@@ -1,0 +1,154 @@
+esphome:
+  name: esp-gas
+  platform: ESP32
+  board: nodemcu-32s
+
+logger:
+
+api:
+
+ota:
+
+wifi:
+  ap:
+    ssid: "Gas_Monitor"
+
+web_server:
+  port: 80    
+
+captive_portal:
+
+globals:
+  # 累计用气量（m³）
+  - id: total_gas_usage
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+
+  # 每个脉冲对应体积（m³）
+  - id: pulse_volume
+    type: float
+    restore_value: yes
+    initial_value: '0.01'
+
+  # 最小脉冲间隔（毫秒）
+  - id: min_pulse_interval_ms
+    type: int
+    restore_value: yes
+    initial_value: '2000'
+
+  # 上一次有效脉冲时间
+  - id: last_pulse_time
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+
+# =========================
+# 用气量传感器（显示在 HA）
+# =========================
+sensor:
+  - platform: template
+    name: "Meter"
+    id: gas_meter
+    unit_of_measurement: "m³"
+    accuracy_decimals: 3
+    device_class: gas
+    state_class: total_increasing
+    update_interval: 60s
+    lambda: |-
+      return id(total_gas_usage);
+
+# =========================
+# 实时脉冲状态（计量核心）
+# =========================
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Gas Pulse State"
+    id: gas_pulse_state
+    filters:
+      - delayed_off: 1000ms
+    on_press:
+      then:
+        - lambda: |-
+            unsigned long now = millis();
+            if (now - id(last_pulse_time) >= id(min_pulse_interval_ms)) {
+              id(total_gas_usage) += id(pulse_volume);
+              id(gas_meter).publish_state(id(total_gas_usage));
+              id(last_pulse_time) = now;
+            }
+
+# =========================
+# 可调参数（HA 可调）
+# =========================
+number:
+  # 手动校正总气量
+  - platform: template
+    name: "Gas Usage Correction"
+    id: gas_usage_correction
+    min_value: 0
+    max_value: 99999
+    step: 0.01
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    set_action:
+      then:
+        - lambda: |-
+            id(total_gas_usage) = x;
+            id(gas_meter).publish_state(id(total_gas_usage));
+            id(gas_usage_correction).publish_state(0);
+
+  # 每脉冲体积可调
+  - platform: template
+    name: "Pulse Volume"
+    id: pulse_precision
+    unit_of_measurement: "m³"
+    min_value: 0.0001
+    max_value: 1
+    step: 0.001
+    optimistic: true
+    restore_value: true
+    initial_value: 0.01
+    set_action:
+      then:
+        - lambda: |-
+            id(pulse_volume) = x;
+
+  # 最小脉冲间隔（ms）
+  - platform: template
+    name: "Pulse Min Interval"
+    id: pulse_min_interval
+    unit_of_measurement: "ms"
+    min_value: 100
+    max_value: 10000
+    step: 100
+    optimistic: true
+    restore_value: true
+    initial_value: 2000
+    set_action:
+      then:
+        - lambda: |-
+            id(min_pulse_interval_ms) = (int)x;
+
+# =========================
+# 重启
+# =========================
+button:
+  - platform: restart
+    name: "Restart"
+
+# =========================
+# 网络信息
+# =========================
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+    ssid:
+      name: Connected SSID
+    mac_address:
+      name: Mac Address
